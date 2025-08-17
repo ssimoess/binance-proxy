@@ -1,84 +1,55 @@
-// index.js  — Proxy simples para Binance (Railway)
-// CommonJS + node-fetch v2 (garante compatibilidade no Railway)
-
+// index.js
 const express = require("express");
-const fetch = require("node-fetch");
+const https = require("https");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// CORS aberto (o teu Worker no Cloudflare pode chamar sem bloqueio)
-app.use((_, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  next();
+// Endpoint principal só para confirmar que está online
+app.get("/", (req, res) => {
+  res.send("✅ Binance Proxy ativo!");
 });
 
-// Healthcheck
-app.get("/", (_req, res) => {
-  res.status(200).send("✅ Proxy Binance ativo!");
-});
+// Endpoint de proxy para Binance Klines
+app.get("/proxy", (req, res) => {
+  const symbol = req.query.symbol || "BTCUSDT";
+  const interval = req.query.interval || "15m";
+  const limit = req.query.limit || 10;
 
-// GET /proxy?symbol=BTCUSDT&interval=15m&limit=300
-app.get("/proxy", async (req, res) => {
-  try {
-    const symbol   = String(req.query.symbol || "").toUpperCase();
-    const interval = String(req.query.interval || "");
-    const lim      = Number(req.query.limit || 300);
+  // CORRIGIDO: usar template string com backticks
+  const path = /api/v3/klines?symbol=${encodeURIComponent(symbol)}&interval=${encodeURIComponent(interval)}&limit=${limit};
 
-    if (!symbol || !interval) {
-      return res.status(400).json({ error: "Faltam parâmetros: ?symbol=BTCUSDT&interval=15m&limit=300" });
-    }
+  const options = {
+    hostname: "api.binance.com",
+    port: 443,
+    path: path,
+    method: "GET"
+  };
 
-    const path = /api/v3/klines?symbol=${encodeURIComponent(symbol)}&interval=${encodeURIComponent(interval)}&limit=${lim};
+  const request = https.request(options, (response) => {
+    let data = "";
 
-    // Endpoints de fallback (ordem de tentativa)
-    const BASES = [
-      "https://api.binance.com",
-      "https://api1.binance.com",
-      "https://api2.binance.com",
-      "https://api3.binance.com"
-    ];
+    response.on("data", (chunk) => {
+      data += chunk;
+    });
 
-    // headers simples; não uses user-agents estranhos
-    const headers = {
-      "accept": "application/json",
-      "cache-control": "no-cache"
-    };
-
-    let lastErr = null;
-    for (const base of BASES) {
-      const url = ${base}${path};
+    response.on("end", () => {
       try {
-        const r = await fetch(url, { headers, timeout: 15000 });
-        const text = await r.text(); // lê como texto para preservar o erro da Binance
-        let data;
-        try { data = JSON.parse(text); } catch { data = text; }
-
-        if (r.ok) {
-          return res.status(200).json(data);
-        } else {
-          lastErr = new Error(Binance HTTP ${r.status} @ ${base});
-          // tenta próximo base se 403/429/5xx
-          if ([403,429,451,500,502,503,520,525].includes(r.status)) continue;
-          return res.status(r.status).json({ error: lastErr.message, details: data });
-        }
+        res.json(JSON.parse(data));
       } catch (e) {
-        lastErr = e;
-        // tenta próximo BASE
-        continue;
+        res.status(500).json({ error: "Erro ao processar resposta da Binance" });
       }
-    }
+    });
+  });
 
-    // se todas falharem
-    return res.status(502).json({ error: "All Binance bases failed", details: String(lastErr) });
+  request.on("error", (error) => {
+    res.status(500).json({ error: "Erro no proxy", details: error.message });
+  });
 
-  } catch (e) {
-    return res.status(500).json({ error: "Erro no proxy", details: String(e) });
-  }
+  request.end();
 });
 
+// Inicia o servidor
 app.listen(PORT, () => {
-  console.log(🚀 Proxy ativo na porta ${PORT});
+  console.log(🚀 Servidor a correr na porta ${PORT});
 });
