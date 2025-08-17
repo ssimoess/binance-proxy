@@ -1,7 +1,7 @@
 {
   "name": "binance-proxy",
   "version": "1.0.0",
-  "description": "Proxy para aceder à API da Binance sem bloqueio",
+  "description": "Proxy para aceder à API da Binance",
   "main": "index.js",
   "type": "commonjs",
   "scripts": {
