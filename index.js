@@ -1,37 +1,41 @@
-// index.js — Proxy simples para Binance (sem backticks)
 const express = require("express");
-const https = require("https");
+const fetch = require("node-fetch");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.get("/", function (_req, res) {
-  res.status(200).send("✅ Binance Proxy ativo!");
+// Rota simples para confirmar que o proxy está ativo
+app.get("/", (req, res) => {
+  res.send("✅ Binance Proxy ativo!");
 });
 
-// /proxy?symbol=BTCUSDT&interval=15m&limit=300
-app.get("/proxy", function (req, res) {
-  const symbol = String(req.query.symbol || "BTCUSDT").toUpperCase();
-  const interval = String(req.query.interval || "15m");
-  const limit = String(req.query.limit || "300");
+// Rota de proxy para Binance
+app.get("/proxy", async (req, res) => {
+  try {
+    const { symbol, interval, limit } = req.query;
 
-  const url =
-    "https://api.binance.com/api/v3/klines?symbol=" + encodeURIComponent(symbol) +
-    "&interval=" + encodeURIComponent(interval) +
-    "&limit=" + encodeURIComponent(limit);
+    if (!symbol || !interval) {
+      return res.status(400).json({
+        error: "Parâmetros obrigatórios: symbol e interval"
+      });
+    }
 
-  https.get(url, function (r) {
-    let data = "";
-    r.on("data", function (ch) { data += ch; });
-    r.on("end", function () {
-      res.setHeader("Content-Type", "application/json");
-      res.status(r.statusCode || 200).send(data);
-    });
-  }).on("error", function (err) {
-    res.status(502).json({ error: "Erro ao contactar Binance", details: String(err) });
-  });
+    const url = `https://api.binance.com/api/v3/klines?symbol=${encodeURIComponent(
+      symbol
+    )}&interval=${encodeURIComponent(interval)}&limit=${encodeURIComponent(
+      limit || 10
+    )}`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao contactar Binance", details: err.message });
+  }
 });
 
-app.listen(PORT, function () {
-  console.log("Proxy ativo na porta " + PORT);
+// Inicia o servidor
+app.listen(PORT, () => {
+  console.log(🚀 Proxy ativo na porta ${PORT});
 });
