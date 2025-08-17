@@ -11,7 +11,7 @@ app.get("/", (req, res) => {
 app.get("/proxy", (req, res) => {
   const { symbol = "BTCUSDT", interval = "15m", limit = 5 } = req.query;
 
-  const url = https://api.binance.com/api/v3/klines?symbol=${encodeURIComponent(symbol)}&interval=${encodeURIComponent(interval)}&limit=${encodeURIComponent(limit)};
+  const url = `https://api.binance.com/api/v3/klines?symbol=${encodeURIComponent(symbol)}&interval=${encodeURIComponent(interval)}&limit=${encodeURIComponent(limit)}`;
 
   https.get(url, (response) => {
     let data = "";
