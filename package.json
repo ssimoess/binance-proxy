@@ -1,14 +1,16 @@
 {
   "name": "binance-proxy",
   "version": "1.0.0",
-  "description": "Proxy para aceder à API da Binance",
+  "description": "Proxy simples para Binance (Railway)",
   "main": "index.js",
   "type": "commonjs",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "node-fetch": "^2.6.1"
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=16"
   }
 }
