@@ -1,12 +1,13 @@
 const express = require("express");
 const fetch = require("node-fetch");
 const app = express();
+const PORT = process.env.PORT || 3000;
 
 app.get("/", (_req, res) => {
   res.send("✅ Proxy Binance ativo!");
 });
 
-// Endpoint para proxy: /proxy?symbol=BTCUSDT&interval=15m&limit=300
+// /proxy?symbol=BTCUSDT&interval=15m&limit=300
 app.get("/proxy", async (req, res) => {
   try {
     const { symbol, interval, limit } = req.query;
@@ -16,10 +17,7 @@ app.get("/proxy", async (req, res) => {
     const lim = Number(limit || 300);
     const url = https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${lim};
     const r = await fetch(url, {
-      headers: {
-        "user-agent": "railway-proxy",
-        "accept": "application/json"
-      }
+      headers: { "user-agent": "railway-proxy", "accept": "application/json" }
     });
     const data = await r.json();
     res.status(r.status).json(data);
@@ -28,5 +26,4 @@ app.get("/proxy", async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(🚀 Proxy ativo na porta ${PORT}));
+app.listen(PORT, () => console.log("Proxy ativo na porta " + PORT));
