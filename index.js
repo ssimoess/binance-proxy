@@ -1,44 +1,38 @@
-// CommonJS + fetch nativo do Node (Node >= 18)
-const express = require('express');
+// index.js (Railway proxy) - CommonJS
 
+const express = require("express");
 const app = express();
-const PORT = process.env.PORT || 3000;
 
-// Raiz para teste rápido
-app.get('/', (_req, res) => {
-  res.json({ ok: true, service: 'binance-proxy', msg: 'running' });
+// Cabeçalhos úteis (CORS + JSON por defeito)
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
+  next();
 });
 
-// helper para montar query strings SEM crases
-function withQuery(base, params) {
-  const qs = new URLSearchParams(params);
-  return base + '?' + qs.toString();
-}
+// Health / confirmação
+app.get("/", (req, res) => {
+  res.type("text/plain").send("✅ Binance Proxy ativo!");
+});
 
-// =======================
-//  SPOT klines (api.binance)
-//  GET /spot?symbol=BTCUSDC&interval=15m&limit=100
-// =======================
-app.get('/spot', async (req, res) => {
+// Ping simples
+app.get("/api/ping", (req, res) => {
+  res.json({ ok: true, msg: "pong" });
+});
+
+// ---------- ENDPOINTS ----------
+
+// SPOT klines (se precisares)
+app.get("/api/api/v3/klines", async (req, res) => {
   try {
-    const symbol = req.query.symbol;
-    const interval = req.query.interval || '15m';
-    const limit = req.query.limit || '100';
-    if (!symbol) return res.status(400).json({ error: 'Missing symbol' });
-
-    const url = withQuery('https://api.binance.com/api/v3/klines', {
-      symbol: symbol,
-      interval: interval,
-      limit: limit
-    });
-
-    const r = await fetch(url, { headers: { accept: 'application/json' } });
-    if (!r.ok) {
-      const text = await r.text();
-      return res
-        .status(r.status)
-        .json({ error: 'Binance error', status: r.status, detail: text });
-    }
+    const { symbol, interval, limit = 500 } = req.query;
+    const url = `https://api.binance.com/api/v3/klines?symbol=${encodeURIComponent(
+      symbol
+    )}&interval=${encodeURIComponent(interval)}&limit=${encodeURIComponent(
+      limit
+    )}`;
+    const r = await fetch(url);
+    if (!r.ok) return res.status(r.status).json({ error: HTTP ${r.status} });
     const data = await r.json();
     res.json(data);
   } catch (e) {
@@ -46,37 +40,27 @@ app.get('/spot', async (req, res) => {
   }
 });
 
-// =======================
-//  FUTURES klines (fapi.binance)
-//  GET /futures?symbol=BTCUSDC&interval=15m&limit=100
-// =======================
-app.get('/futures', async (req, res) => {
+// FUTURES (USDT/USDC) klines — ESTE É O QUE O TEU WORKER USA
+app.get("/api/fapi/v1/klines", async (req, res) => {
   try {
-    const symbol = req.query.symbol;
-    const interval = req.query.interval || '15m';
-    const limit = req.query.limit || '100';
-    if (!symbol) return res.status(400).json({ error: 'Missing symbol' });
-
-    const url = withQuery('https://fapi.binance.com/fapi/v1/klines', {
-      symbol: symbol,
-      interval: interval,
-      limit: limit
-    });
-
-    const r = await fetch(url, { headers: { accept: 'application/json' } });
-    if (!r.ok) {
-      const text = await r.text();
-      return res
-        .status(r.status)
-        .json({ error: 'Binance error', status: r.status, detail: text });
-    }
+    const { symbol, interval, limit = 500 } = req.query;
+    const url = `https://fapi.binance.com/fapi/v1/klines?symbol=${encodeURIComponent(
+      symbol
+    )}&interval=${encodeURIComponent(interval)}&limit=${encodeURIComponent(
+      limit
+    )}`;
+    const r = await fetch(url);
+    if (!r.ok) return res.status(r.status).json({ error: HTTP ${r.status} });
     const data = await r.json();
     res.json(data);
-  } catch (e) {
-    res.status(500).json({ error: String(e) });
+  } catch (f) {
+    res.status(500).json({ error: String(f) });
   }
 });
 
+// -------------------------------
+
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
-  console.log('Proxy running on port ' + PORT);
+  console.log(🚀 Proxy a escutar na porta ${PORT});
 });
