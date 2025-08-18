@@ -1,9 +1,8 @@
 {
   "name": "binance-proxy",
   "version": "1.0.0",
-  "description": "Simple Binance proxy for klines (spot & futures)",
-  "main": "index.js",
-  "engines": { "node": ">=18" },
+  "private": true,
+  "type": "commonjs",
   "scripts": {
     "start": "node index.js"
   },
