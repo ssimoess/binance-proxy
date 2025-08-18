@@ -1,39 +1,31 @@
-// Proxy simples para Binance sem usar crases (template strings)
-const express = require("express");
-const https = require("https");
+import express from "express";
+import fetch from "node-fetch";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Healthcheck
-app.get("/", function (_req, res) {
-  res.status(200).send("✅ Binance Proxy ativo!");
+// rota raiz só para teste
+app.get("/", (req, res) => {
+  res.json({ status: "Binance Proxy running" });
 });
 
-// /proxy?symbol=BTCUSDT&interval=15m&limit=300
-app.get("/proxy", function (req, res) {
-  const symbol = String(req.query.symbol || "BTCUSDT").toUpperCase();
-  const interval = String(req.query.interval || "15m");
-  const limit = String(req.query.limit || "300");
+// rota para candles de futuros
+app.get("/futures", async (req, res) => {
+  try {
+    const { symbol, interval = "15m", limit = 100 } = req.query;
+    if (!symbol) {
+      return res.status(400).json({ error: "Missing symbol parameter" });
+    }
 
-  const url =
-    "https://api.binance.com/api/v3/klines?symbol=" + encodeURIComponent(symbol) +
-    "&interval=" + encodeURIComponent(interval) +
-    "&limit=" + encodeURIComponent(limit);
-
-  https.get(url, function (r) {
-    let data = "";
-    r.on("data", function (ch) { data += ch; });
-    r.on("end", function () {
-      res.setHeader("Content-Type", "application/json");
-      res.status(r.statusCode || 200).send(data);
-    });
-  }).on("error", function (err) {
-    res.status(502).json({ error: "Erro ao contactar Binance", details: String(err) });
-  });
+    const url = https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=${limit};
+    const response = await fetch(url);
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// Arrancar servidor (sem crases)
-app.listen(PORT, function () {
-  console.log("Proxy ativo na porta " + PORT);
+app.listen(PORT, () => {
+  console.log(Proxy running on port ${PORT});
 });
